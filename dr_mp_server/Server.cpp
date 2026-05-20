@@ -169,9 +169,9 @@ void Server::ReceivePacket(int playerId)
 
 				SendPacket(playerId, PacketConnect(i, Players[i].Name));
 				SendPacket(playerId, PacketChr(i, Players[i].CharID, Players[i].ExpID));
-				SendPacket(playerId, PacketPos(i, Players[i].Pos));
 				SendPacket(playerId, PacketCamType(i, Players[i].CamType));
 				SendPacket(playerId, PacketMap(i, Players[i].Map));
+				SendPacket(playerId, PacketPos(i, Players[i].Pos));
 			}
 
 			BroadcastPacketExcludePlayer(PacketConnect(playerId, Players[playerId].Name), playerId);

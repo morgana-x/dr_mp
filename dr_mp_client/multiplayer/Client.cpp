@@ -8,6 +8,10 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+int mpOldMap = -1;
+int mpOldCamType = -1;
+Vec3 mpOldPos = Vec3(0, 0, 0);
+
 void createChar(char c, short exp=0)
 {
 	if (Core::Game == Core::DR1)
@@ -229,6 +233,12 @@ void dr_mp::Client::ReceiveMessage()
 				Disconnect();
 			break;
 		}
+		case P_CamType:
+		{
+			auto packet = (PacketCamType*)(packetBuffer);
+			Players[packet->pl_id].CamType = packet->pl_cam;
+			break;
+		}
 		case P_Map:
 		{
 			auto packet = (PacketMap*)(packetBuffer);
@@ -240,7 +250,7 @@ void dr_mp::Client::ReceiveMessage()
 
 			if (oldmap != -1 && oldmap != 0 && oldmap == getMap())
 				despawnChar(Players[packet->pl_id].CharID);
-			if (packet->pl_map != -1 && packet->pl_map != 0 && packet->pl_map == getMap())
+			if (packet->pl_map != -1 && packet->pl_map != 0 && packet->pl_map == getMap() && getMovementMode() == MovementMode::Walk)
 			{
 				createChar(Players[packet->pl_id].CharID, Players[packet->pl_id].ExpID);
 				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
@@ -249,19 +259,13 @@ void dr_mp::Client::ReceiveMessage()
 			std::cout << "received player map packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ") with map " << packet->pl_map << "!\n";
 			break;
 		}
-		case P_CamType:
-		{
-			auto packet = (PacketCamType*)(packetBuffer);
-			Players[packet->pl_id].CamType = packet->pl_cam;
-			break;
-		}
 		case P_Pos:
 		{
 			auto packet = (PacketPos*)(packetBuffer);
 			for (int i = 0; i < 3; i++)
 				Players[packet->pl_id].Pos[i] = packet->pl_pos[i];
 
-			if (Players[packet->pl_id].Map == getMap())
+			if (Players[packet->pl_id].Map == getMap() && getMovementMode() == MovementMode::Walk)
 			{
 				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
 			}
@@ -300,9 +304,6 @@ void dr_mp::Client::ReceiveMessage()
 
 }
 
-int mpOldMap = -1;
-int mpOldCamType = -1;
-Vec3 mpOldPos = Vec3(0,0,0);
 
 int requestChara = 0;
 int requestExp = 0;
@@ -313,6 +314,13 @@ bool needSendChat;
 
 void dr_mp::Client::TickSend()
 {
+	int newMovement = getMovementMode();
+	if (newMovement != mpOldCamType)
+	{
+		mpOldCamType = newMovement;
+		SendPacket(PacketCamType(client_id, mpOldCamType));
+	}
+
 	int newMap = getMap();
 	bool mapChanged = newMap != mpOldMap;
 	//	std::cout << "Map " << newMap << "\n";
