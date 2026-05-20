@@ -9,9 +9,8 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="args">
+      <UniqueIdentifier>{2b8a0cdf-aee0-42c9-a5ae-300fdadd54c1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -20,6 +19,9 @@
     </ClCompile>
     <ClCompile Include="Server.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\args\args.c">
+      <Filter>args</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +36,9 @@
     </ClInclude>
     <ClInclude Include="Chara.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\args\args.h">
+      <Filter>args</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
