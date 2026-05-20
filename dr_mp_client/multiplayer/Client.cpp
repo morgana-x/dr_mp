@@ -1,0 +1,406 @@
+
+#include "Client.hpp"
+#include "stdio.h"
+#include <iostream>
+#include "../Core.hpp"
+#include "../drlib/Dr1.h"
+#include "../drlib/Dr2.h"
+
+#pragma comment(lib, "Ws2_32.lib")
+
+void createChar(char c, short exp=0)
+{
+	if (Core::Game == Core::DR1)
+	{
+		DrLib::Dr1::Funcs::Character::CreateChar(c);
+		DrLib::Dr1::Funcs::Character::LoadStand(c, exp);
+		DrLib::Dr1::Funcs::Character::SpawnChar(c, 0);
+		return;
+	}
+	if (Core::Game == Core::DR2)
+	{
+		DrLib::Dr2::Funcs::Character::CreateChar(c);
+		DrLib::Dr2::Funcs::Character::LoadStand(c, exp);
+		DrLib::Dr2::Funcs::Character::SpawnChar(c, 0);
+		return;
+	}
+}
+
+void despawnChar(char c)
+{
+	if (Core::Game == Core::DR1)
+	{
+		DrLib::Dr1::Funcs::Character::DespawnChar(c);
+		return;
+	}
+	if (Core::Game == Core::DR2)
+	{
+	//	DrLib::Dr2::Funcs::Character::DespawnChar(c);
+		return;
+	}
+}
+
+void setCharPos(char c, float pos[3])
+{
+	if (Core::Game == Core::DR1)
+	{
+		DrLib::Dr1::Funcs::Character::SetPos(c, pos[0], pos[1], pos[2]);
+		return;
+	}
+	if (Core::Game == Core::DR2)
+	{
+		//DrLib::Dr2::Funcs::Character::SetPos(c, pos[0], pos[1], pos[2]);
+		return;
+	}
+}
+
+DrLib::Types::Common::Vec3* getPos()
+{
+	if (Core::Game == Core::DR1)
+	{
+		return DrLib::Dr1::Values::Player::Pos;
+	}
+	if (Core::Game == Core::DR2)
+	{
+		//return *DrLib::Dr2::Values::Player::Pos;;
+		return nullptr;//DrLib::Types::Common::Vec3(0, 0, 0);
+	}
+
+	return nullptr;// DrLib::Types::Common::Vec3(0, 0, 0);
+}
+
+int getMap()
+{
+	if (Core::Game == Core::DR1)
+		return *DrLib::Dr1::Values::Map::CurrentMap;
+	if (Core::Game == Core::DR2)
+		return *DrLib::Dr2::Values::Map::CurrentMap;
+
+	return -1;
+}
+
+
+int getMovementMode()
+{
+	if (Core::Game == Core::DR1)
+		return (int)*DrLib::Dr1::Values::Player::MovementMode;
+	//if (Core::Game == Core::DR2)
+	//	return (int)DrLib::Dr2::Values::Player::MovementMode;
+
+	return -1;
+}
+
+void dr_mp::Client::Init()
+{
+	SetName("morgana");
+}
+
+u_long iMode = 1;
+
+int dr_mp::Client::Connect(const char* addr, int port)
+{
+	std::cout << "Connecting to " << addr << ":" << port << " ...\n";
+	WSADATA wsaData;
+	int wsaerr;
+	WORD wVersionRequested = MAKEWORD(2, 2);
+	wsaerr = WSAStartup(wVersionRequested, &wsaData);
+
+    // Create socket
+    sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0) {
+        std::cerr << "Socket creation error" << std::endl;
+        return -1;
+    }
+
+	ioctlsocket(sock, FIONBIO, &iMode);
+
+    serv_addr.sin_family = AF_INET;
+   // if (inet_pton(serv_addr.sin_family, addr, &serv_addr.sin_addr)) {
+	long result = inet_addr(addr);
+
+	if (result == INADDR_NONE) {
+		std::cerr << "Invalid address/ Address not supported" << std::endl;
+		return -1;
+	}
+	serv_addr.sin_addr.s_addr = result;
+
+
+    serv_addr.sin_port = htons(port);
+
+    // Connect to server
+    if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == 1) {
+        std::cerr << "Connection Failed" << std::endl;
+        return -1;
+    }
+	
+	Sleep(250);
+	
+	int error_code;
+	int error_code_size = sizeof(error_code);
+	if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&error_code, &error_code_size) != 0)
+	{
+		std::cerr << "Connection Failed" << std::endl;
+		return -1;
+	}
+
+	std::cout << "Connection established to " << addr << ":" << port << " ...\n";
+	connected = true;
+	verified = false;
+	return 0;
+}
+
+char packetBuffer[256];
+
+void dr_mp::Client::ReceiveMessage()
+{
+	int result = recv(sock, packetBuffer, 1, 0);
+
+	if (result == 0)
+	{
+		Disconnect();
+		return;
+	}
+
+	if (result == -1)
+		return;
+
+	int id = packetBuffer[0];
+
+	if (id < 0 || id >= P_LENGTH)
+	{
+		std::cerr << "Received invalid packet ID! " << id << std::endl;
+		return;
+	}
+
+	int numbytes = result;
+
+	int attempts = 0;
+	int length = PacketLengths[id];
+	while (numbytes < length && attempts < 20)
+	{
+		int n = recv(sock, packetBuffer + numbytes, length - numbytes, 0);
+		if (n == 0)
+		{
+			Disconnect();
+			return;
+		}
+		if (n != -1)
+			numbytes += n;
+		attempts++;
+	}
+
+	if (numbytes < length || numbytes > length)
+	{
+		std::cerr << "Incorrect size for packet ID " << id << std::endl;
+		return;
+	}
+
+	switch (id)
+	{
+		case P_Init:
+		{
+			auto packet = (PacketInit*)(packetBuffer);
+			client_id = packet->pl_id;
+			Players[packet->pl_id].IsClient = true;
+			Players[packet->pl_id].Active = true;
+			Players[packet->pl_id].SetName(name);
+			SendPacket(PacketConnect(client_id, name));
+			connected = true;
+			verified = true;
+			std::cout << "Sent confirmation packet to server\n";// established to " << addr << ":" << port << " ...\n";
+			break;
+		}
+		case P_Connect:
+		{
+			auto packet = (PacketConnect*)(packetBuffer);
+			Players[packet->pl_id].SetName(packet->pl_name);
+			Players[packet->pl_id].Active = true;
+			Players[packet->pl_id].Map = -1;
+			std::cout << "received player info packet of " << packet->pl_name << "(" << packet->pl_id << ")\n";
+
+			break;
+		}
+		case P_Disconnect:
+		{
+			auto packet = (PacketDisconnect*)(packetBuffer);
+			Players[packet->pl_id].Active = false;
+			std::cout << "received player disconnect packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ")\n";
+			if (packet->pl_id == client_id)
+				Disconnect();
+			break;
+		}
+		case P_Map:
+		{
+			auto packet = (PacketMap*)(packetBuffer);
+			int oldmap = Players[packet->pl_id].Map;
+
+		
+
+			Players[packet->pl_id].Map = packet->pl_map;
+
+			if (oldmap != -1 && oldmap != 0 && oldmap == getMap())
+				despawnChar(Players[packet->pl_id].CharID);
+			if (packet->pl_map != -1 && packet->pl_map != 0 && packet->pl_map == getMap())
+			{
+				createChar(Players[packet->pl_id].CharID, Players[packet->pl_id].ExpID);
+				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
+			}
+
+			std::cout << "received player map packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ") with map " << packet->pl_map << "!\n";
+			break;
+		}
+		case P_CamType:
+		{
+			auto packet = (PacketCamType*)(packetBuffer);
+			Players[packet->pl_id].CamType = packet->pl_cam;
+			break;
+		}
+		case P_Pos:
+		{
+			auto packet = (PacketPos*)(packetBuffer);
+			for (int i = 0; i < 3; i++)
+				Players[packet->pl_id].Pos[i] = packet->pl_pos[i];
+
+			if (Players[packet->pl_id].Map == getMap())
+			{
+				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
+			}
+			break;
+		}
+		case P_Message:
+		{
+			auto packet = (PacketMsg*)(packetBuffer);
+			std::cout << packet->pl_msg << "\n";
+			chat.PushMessage(packet->pl_msg);
+			break;
+		}
+		case P_Kick:
+		{
+			auto packet = (PacketKick*)(packetBuffer);
+			std::cout << "Kicked! Reason: " << packet->k_msg << "\n";
+			Disconnect();
+			break;
+		}
+
+		case P_Chr:
+		{
+			auto packet = (PacketChr*)(packetBuffer);
+			int oldChr = Players[packet->pl_id].CharID;
+			Players[packet->pl_id].CharID = packet->pl_char;
+			Players[packet->pl_id].ExpID = packet->pl_exp;
+			if (Players[packet->pl_id].Map == getMap() && Players[packet->pl_id].Map > 0)
+			{
+				despawnChar(oldChr);
+				createChar(Players[packet->pl_id].CharID, Players[packet->pl_id].ExpID);
+				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
+			}
+			break;
+		}
+	}
+
+}
+
+int mpOldMap = -1;
+int mpOldCamType = -1;
+Vec3 mpOldPos = Vec3(0,0,0);
+
+int requestChara = 0;
+int requestExp = 0;
+bool needRequestChara = false;
+
+char chatBuffer[128];
+bool needSendChat;
+
+void dr_mp::Client::TickSend()
+{
+	int newMap = getMap();
+	bool mapChanged = newMap != mpOldMap;
+	//	std::cout << "Map " << newMap << "\n";
+	if (mapChanged)
+	{
+		mpOldMap = newMap;
+		SendPacket(PacketMap(client_id, newMap));
+		std::cout << "Sending map " << newMap << "\n";
+
+		for (int i = 0; i < MAX_PLAYERS; i++)
+		{
+			if (Players[i].Map == newMap && newMap > 0 && Players[i].Active && !Players[i].IsClient)
+			{
+				createChar(Players[i].CharID, Players[i].ExpID);
+				setCharPos(Players[i].CharID, Players[i].Pos);
+			}
+		}
+	}
+
+
+	Vec3* newPos = getPos();
+	if (mapChanged || newPos->x != mpOldPos.x || newPos->y != mpOldPos.y || newPos->z != mpOldPos.z)
+	{
+		mpOldPos.x = newPos->x;
+		mpOldPos.y = newPos->y;
+		mpOldPos.z = newPos->z;
+		SendPacket(PacketPos(client_id, mpOldPos.x, mpOldPos.y, mpOldPos.z));
+	}
+
+	if (needRequestChara)
+	{
+		needRequestChara = false;
+		SendPacket(PacketChr(client_id, requestChara, requestExp));
+	}
+
+	if (needSendChat)
+	{
+		needSendChat = false;
+		SendPacket(PacketMsg(client_id, chatBuffer));
+	}
+}
+
+void dr_mp::Client::RequestCharaChange(int c, int e)
+{
+	if (!verified || !connected)
+		return;
+
+	requestChara = c;
+	requestExp = e;
+	needRequestChara = true;
+}
+
+void dr_mp::Client::SendChat(char* msg)
+{
+	if (!verified || !connected)
+		return;
+	int len = strlen(msg);
+	if (len > 127)
+		len = 127;
+
+	for (int i = 0; i < len; i++)
+		chatBuffer[i] = msg[i];
+
+	chatBuffer[len] = '\0';
+
+	needSendChat = true;
+}
+
+void dr_mp::Client::Tick()
+{
+	if (connected)
+	{
+		if (verified)
+			TickSend();
+
+		ReceiveMessage();
+	}
+}
+
+void dr_mp::Client::Disconnect()
+{
+	connected = false;
+	closesocket(sock);
+	for (int i = 0; i < MAX_PLAYERS; i++)
+	{
+		Players[i].Active = false;
+		Players[i].IsClient = false;
+	}
+
+	std::cout << "Disconnected from server!\n";
+}

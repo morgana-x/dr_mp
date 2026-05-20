@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Core.cpp" />
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="ext\imgui\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\imgui\imgui_tables.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\imgui\imgui_impl_win32.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\imgui\imgui_impl_opengl3.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\imgui\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\imgui\imgui_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="ext\imgui\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="multiplayer\Client.cpp">
+      <Filter>Multiplayer</Filter>
+    </ClCompile>
+    <ClCompile Include="multiplayer\Menu.cpp">
+      <Filter>Multiplayer</Filter>
+    </ClCompile>
+    <ClCompile Include="Draw.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core.hpp" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="drlib\Dr1Values.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="drlib\Dr2.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="drlib\Dr2Funcs.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="drlib\Dr2Values.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="drlib\Dr1.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="drlib\Dr1Funcs.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\imgui\imgui_internal.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\imgui\imgui_impl_win32.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\imgui\imgui_impl_opengl3.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\imgui\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\minhook\include\MinHook.h">
+      <Filter>minhook</Filter>
+    </ClInclude>
+    <ClInclude Include="drlib\DrTypes.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\imgui\imconfig.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="multiplayer\Client.hpp">
+      <Filter>Multiplayer</Filter>
+    </ClInclude>
+    <ClInclude Include="multiplayer\Player.hpp">
+      <Filter>Multiplayer</Filter>
+    </ClInclude>
+    <ClInclude Include="multiplayer\Packet.hpp">
+      <Filter>Multiplayer</Filter>
+    </ClInclude>
+    <ClInclude Include="multiplayer\Chat.hpp">
+      <Filter>Multiplayer</Filter>
+    </ClInclude>
+    <ClInclude Include="multiplayer\Menu.hpp">
+      <Filter>Multiplayer</Filter>
+    </ClInclude>
+    <ClInclude Include="Draw.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="drlib">
+      <UniqueIdentifier>{e67088b0-a67a-49b9-be81-0a2a5969f754}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{6eaed449-eb07-4de4-a46a-447b56df3853}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="minhook">
+      <UniqueIdentifier>{50680031-a534-4f4e-b09d-3dfb3058f644}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Multiplayer">
+      <UniqueIdentifier>{da74b31e-71db-4263-b538-13996fed1fbf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="ext\minhook\lib\libMinHook.x86.lib">
+      <Filter>minhook</Filter>
+    </Library>
+  </ItemGroup>
+</Project>
