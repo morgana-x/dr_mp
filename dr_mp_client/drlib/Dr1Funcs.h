@@ -67,6 +67,12 @@ namespace DrLib
 
 				typedef void CreateCharFunc(unsigned int chara);
 				inline CreateCharFunc* CreateChar = (CreateCharFunc*)(baseAddr + 0x22980);
+
+				inline void CopyPos(unsigned int chara, float* dest)
+				{
+					for (int i = 0; i < 3; i++)
+						dest[i] = ((float*)((baseAddr + 0x2a5f60 + (i * 4))))[chara * 0x85];
+				}
 			}
 
 			namespace Script

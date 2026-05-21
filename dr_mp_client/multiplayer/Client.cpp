@@ -2,6 +2,7 @@
 #include "Client.hpp"
 #include "stdio.h"
 #include <iostream>
+#include <chrono>
 #include "../Core.hpp"
 #include "../drlib/Dr1.h"
 #include "../drlib/Dr2.h"
@@ -94,6 +95,12 @@ int getMovementMode()
 	return -1;
 }
 
+void copyCharaPos(unsigned int chara, float* dest)
+{
+	if (Core::Game == Core::DR1)
+		return DrLib::Dr1::Funcs::Character::CopyPos(chara, dest);
+}
+
 void dr_mp::Client::Init()
 {
 	SetName("morgana");
@@ -154,6 +161,14 @@ int dr_mp::Client::Connect(const char* addr, int port)
 }
 
 char packetBuffer[256];
+
+float Distance(float p1[3], float p2[3])
+{
+	float dist = 0;
+	for (int i = 0; i < 3; i++)
+		dist += (p1[i] - p2[i]) * (p1[i] - p2[i]);
+	return sqrtf(dist);
+}
 
 void dr_mp::Client::ReceiveMessage()
 {
@@ -262,12 +277,23 @@ void dr_mp::Client::ReceiveMessage()
 		case P_Pos:
 		{
 			auto packet = (PacketPos*)(packetBuffer);
+
+			// Set old pos to current character position
+			copyCharaPos(Players[packet->pl_id].CharID, Players[packet->pl_id].OldPos);
+
 			for (int i = 0; i < 3; i++)
 				Players[packet->pl_id].Pos[i] = packet->pl_pos[i];
 
-			if (Players[packet->pl_id].Map == getMap() && getMovementMode() == MovementMode::Walk)
+			if (Players[packet->pl_id].Map == getMap() && getMovementMode() == MovementMode::Walk && (Distance(Players[packet->pl_id].Pos, Players[packet->pl_id].OldPos) < 250.0))
 			{
+				Players[packet->pl_id].Lerp = true;
+				Players[packet->pl_id].LerpStart = std::chrono::steady_clock::now();
+			}
+			else
+			{
+				Players[packet->pl_id].Lerp = false;
 				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
+				std::cout << "big dist, setting pos";
 			}
 			break;
 		}
@@ -312,6 +338,13 @@ bool needRequestChara = false;
 char chatBuffer[128];
 bool needSendChat;
 
+const int update_milliseconds = 100;
+
+const float lerp_smooth = (float)(update_milliseconds)/1000.0f;
+
+std::chrono::time_point nextPosUpdate = std::chrono::steady_clock::now();
+std::chrono::milliseconds nextPosPeriod = std::chrono::milliseconds(update_milliseconds);
+
 void dr_mp::Client::TickSend()
 {
 	int newMovement = getMovementMode();
@@ -342,8 +375,10 @@ void dr_mp::Client::TickSend()
 
 
 	Vec3* newPos = getPos();
-	if (mapChanged || newPos->x != mpOldPos.x || newPos->y != mpOldPos.y || newPos->z != mpOldPos.z)
+	auto now = std::chrono::steady_clock::now();
+	if ( (now > nextPosUpdate) && (newMap > 0) && (mapChanged || newPos->x != mpOldPos.x || newPos->y != mpOldPos.y || newPos->z != mpOldPos.z))
 	{
+		nextPosUpdate = now + nextPosPeriod;
 		mpOldPos.x = newPos->x;
 		mpOldPos.y = newPos->y;
 		mpOldPos.z = newPos->z;
@@ -360,6 +395,41 @@ void dr_mp::Client::TickSend()
 	{
 		needSendChat = false;
 		SendPacket(PacketMsg(client_id, chatBuffer));
+	}
+}
+
+float newLerpPos[3];
+
+void dr_mp::Client::TickLerp()
+{
+	if (getMovementMode() != MovementMode::Walk)
+		return;
+
+	auto now = std::chrono::steady_clock::now();
+
+	for (int i = 0; i < MAX_PLAYERS; i++)
+	{
+		if (!Players[i].Active || !Players[i].Lerp)
+			continue;
+
+		if (Players[i].Map != getMap())
+			continue;
+
+		auto elapsed = std::chrono::duration<float>(now - Players[i].LerpStart).count();
+		
+		float t = std::clamp(elapsed / lerp_smooth, 0.0f, 1.0f);
+
+		if (t >= 0.99f)
+		{
+			Players[i].Lerp = false;
+			setCharPos(Players[i].CharID, Players[i].Pos);
+			continue;
+		}
+
+		for (int x = 0; x < 3; x++)
+			newLerpPos[x] = Players[i].OldPos[x] + (t *(Players[i].Pos[x] - Players[i].OldPos[x]));
+
+		setCharPos(Players[i].CharID, newLerpPos);
 	}
 }
 
@@ -394,7 +464,10 @@ void dr_mp::Client::Tick()
 	if (connected)
 	{
 		if (verified)
+		{
 			TickSend();
+			TickLerp();
+		}
 
 		ReceiveMessage();
 	}

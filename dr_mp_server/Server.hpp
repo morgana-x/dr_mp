@@ -112,6 +112,7 @@ class Server
 
 		void ReceiveConnections();
 		void ReceivePackets();
+		void Network();
 
 		int FindFreeID()
 		{

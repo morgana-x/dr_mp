@@ -14,6 +14,11 @@ namespace DrLib
 				inline extern short* CurrentMap = (short*)(baseAddr + 0x2a4ce8);
 			}
 
+			namespace Character
+			{
+				inline extern float* Pos = (float*)(baseAddr + 0x2a5f60);
+			}
+
 			namespace Player
 			{
 				inline extern Vec3* Pos = (Vec3*)(baseAddr + 0x33cc80);
@@ -49,9 +54,6 @@ namespace DrLib
 
 			namespace Character
 			{
-
-				inline extern Vec3* Pos = (Vec3*)(baseAddr + 0x2a5f60);
-
 				inline extern float* Scale = (float*)(baseAddr + 0x2a5f6c);
 				inline extern float* Rot = (float*)(baseAddr + 0x2a5f70);
 			}

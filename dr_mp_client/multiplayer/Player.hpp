@@ -1,4 +1,5 @@
 #include <cstring>
+#include <chrono>
 
 struct Player
 {
@@ -9,6 +10,11 @@ struct Player
 	char Name[32];
 
 	float Pos[3];
+	float OldPos[3];
+
+	std::chrono::steady_clock::time_point LerpStart;
+	bool Lerp;
+
 	int Map;
 	int CamType;
 

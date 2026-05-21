@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <chrono>
 
 #pragma comment(lib, "Ws2_32.lib")
 //https://jameshfisher.com/2017/04/05/set_socket_nonblocking/
@@ -65,8 +66,31 @@ void Server::Tick()
 {
 	Server::ReceiveConnections();
 	Server::ReceivePackets();
+	Server::Network();
 }
 
+std::chrono::time_point nextPosUpdate = std::chrono::steady_clock::now();
+std::chrono::milliseconds nextPosPeriod = std::chrono::milliseconds(100);
+void Server::Network()
+{
+	auto now = std::chrono::steady_clock::now();
+	if (now < nextPosUpdate)
+		return;
+	nextPosUpdate = now + nextPosPeriod;
+
+	for (int i = 0; i < MAX_PLAYERS; i++)
+	{
+		if (!Players[i].Active)
+			continue;
+		if (!Players[i].FinCon)
+			continue;
+		if (!Players[i].PosChanged)
+			continue;
+		Players[i].PosChanged = false;
+
+		BroadcastPacketExcludePlayer(PacketPos(i, Players[i].Pos), i);
+	}
+}
 
 int new_socket;
 char namebuffer[32];
@@ -198,6 +222,7 @@ void Server::ReceivePacket(int playerId)
 				Players[playerId].Map = -1;
 
 			BroadcastPacketExcludePlayer(PacketMap(playerId, Players[playerId].Map), playerId);
+			Players[playerId].PosChanged = true;
 			std::cout << Players[playerId].Name << " joined map " << Players[playerId].Map << "\n";
 			break;
 		}
@@ -213,8 +238,8 @@ void Server::ReceivePacket(int playerId)
 			auto packet = (PacketPos*)(packetBuffer);
 			for (int i = 0; i < 3; i++)
 				Players[playerId].Pos[i] = packet->pl_pos[i];
-
-			BroadcastPacketExcludePlayer(PacketPos(playerId, Players[playerId].Pos), playerId);
+			Players[playerId].PosChanged = true;
+		//	BroadcastPacketExcludePlayer(PacketPos(playerId, Players[playerId].Pos), playerId);
 			break;
 		}
 		case P_Message:

@@ -109,5 +109,6 @@ namespace dr_mp
 
 	private:
 		void TickSend();
+		void TickLerp();
 	};
 }

@@ -8,6 +8,8 @@ struct Player
 	char Name[32];
 
 	float Pos[3];
+	bool PosChanged;
+
 	int Map;
 	int CamType;
 
