@@ -9,12 +9,23 @@ namespace DrLib
 				float x;
 				float y;
 				float z;
+
+				Vec3(float x1, float y2, float z3) {
+					x = x1;
+					y = y2;
+					z = z3;
+				}
 			};
 
 			struct Vec2 {
 				float x;
 				float y;
 
+				Vec2(float x1, float y2)
+				{
+					x = x1;
+					y = y2;
+				}
 			};
 
 
