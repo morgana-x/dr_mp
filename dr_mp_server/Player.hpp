@@ -34,6 +34,7 @@ struct Player
 	{
 		Active = false;
 		closesocket(Socket);
+		Socket = -1;
 		FinCon = false;
 	};
 

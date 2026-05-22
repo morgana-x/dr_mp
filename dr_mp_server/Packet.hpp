@@ -11,6 +11,7 @@ enum Packets
 	P_Message,
 	P_CamType,
 	P_Chr,
+	P_Ping,
 	P_LENGTH,
 };
 
@@ -162,6 +163,14 @@ struct PacketChr : Packet
 	}
 };
 
+struct PacketPing : Packet
+{
+	PacketPing()
+	{
+		pk_id = P_Ping;
+	}
+};
+
 inline int PacketLengths[P_LENGTH] = {
 	sizeof(PacketInit),
 	sizeof(PacketConnect),
@@ -171,5 +180,6 @@ inline int PacketLengths[P_LENGTH] = {
 	sizeof(PacketMap),
 	sizeof(PacketMsg),
 	sizeof(PacketCamType),
-	sizeof(PacketChr)
+	sizeof(PacketChr),
+	sizeof(PacketPing)
 };

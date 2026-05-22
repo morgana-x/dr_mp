@@ -71,11 +71,23 @@ void Server::Tick()
 
 std::chrono::time_point nextPosUpdate = std::chrono::steady_clock::now();
 std::chrono::milliseconds nextPosPeriod = std::chrono::milliseconds(100);
+
+std::chrono::time_point nextPingUpdate = std::chrono::steady_clock::now();
+std::chrono::milliseconds nextPingPeriod = std::chrono::milliseconds(1000);
 void Server::Network()
 {
 	auto now = std::chrono::steady_clock::now();
+
+	if (now > nextPingUpdate)
+	{
+		nextPingUpdate = now + nextPingPeriod;
+		BroadcastPacket(PacketPing());
+	}
+
 	if (now < nextPosUpdate)
 		return;
+
+
 	nextPosUpdate = now + nextPosPeriod;
 
 	for (int i = 0; i < MAX_PLAYERS; i++)
@@ -88,13 +100,17 @@ void Server::Network()
 			continue;
 		Players[i].PosChanged = false;
 
-		BroadcastPacketExcludePlayer(PacketPos(i, Players[i].Pos), i);
+		for (int x = 0; x < MAX_PLAYERS; x++)
+			if (x != i && Players[x].Active && Players[x].FinCon && Players[x].Map == Players[i].Map)
+				SendPacket(x, PacketPos(i, Players[i].Pos));
+		//BroadcastPacketExcludePlayer(PacketPos(i, Players[i].Pos), i);
 	}
 }
 
 int new_socket;
 char namebuffer[32];
 
+struct timeval timeout;
 void Server::ReceiveConnections()
 {
 	int addrlen = sizeof(address);
@@ -113,6 +129,10 @@ void Server::ReceiveConnections()
 		std::cout << "Couldn't find free iD!\n";
 		return;
 	}
+
+	timeout.tv_sec = 30;
+	timeout.tv_usec = 0;
+	setsockopt(new_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
 
 	Players[playerID].StartConnect(new_socket);
 	SendPacket(playerID, PacketInit(playerID));
@@ -222,7 +242,19 @@ void Server::ReceivePacket(int playerId)
 				Players[playerId].Map = -1;
 
 			BroadcastPacketExcludePlayer(PacketMap(playerId, Players[playerId].Map), playerId);
-			Players[playerId].PosChanged = true;
+
+			for (int i = 0; i < MAX_PLAYERS; i++)
+			{
+				if (!Players[i].Active || !Players[i].FinCon)
+					continue;
+				if (Players[i].Map != Players[playerId].Map)
+					continue;
+
+				SendPacket(playerId, PacketChr(i, Players[i].CharID, Players[i].ExpID));
+				SendPacket(playerId, PacketCamType(i, Players[i].CamType));
+				SendPacket(playerId, PacketPos(i, Players[i].Pos));
+			}
+
 			std::cout << Players[playerId].Name << " joined map " << Players[playerId].Map << "\n";
 			break;
 		}
@@ -239,7 +271,6 @@ void Server::ReceivePacket(int playerId)
 			for (int i = 0; i < 3; i++)
 				Players[playerId].Pos[i] = packet->pl_pos[i];
 			Players[playerId].PosChanged = true;
-		//	BroadcastPacketExcludePlayer(PacketPos(playerId, Players[playerId].Pos), playerId);
 			break;
 		}
 		case P_Message:

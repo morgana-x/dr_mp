@@ -13,20 +13,20 @@ int mpOldMap = -1;
 int mpOldCamType = -1;
 Vec3 mpOldPos = Vec3(0, 0, 0);
 
-void createChar(char c, short exp=0)
+void createChar(char c, short exp=0, int pos = 0)
 {
 	if (Core::Game == Core::DR1)
 	{
 		DrLib::Dr1::Funcs::Character::CreateChar(c);
 		DrLib::Dr1::Funcs::Character::LoadStand(c, exp);
-		DrLib::Dr1::Funcs::Character::SpawnChar(c, 0);
+		DrLib::Dr1::Funcs::Character::SpawnChar(c, pos);
 		return;
 	}
 	if (Core::Game == Core::DR2)
 	{
 		DrLib::Dr2::Funcs::Character::CreateChar(c);
 		DrLib::Dr2::Funcs::Character::LoadStand(c, exp);
-		DrLib::Dr2::Funcs::Character::SpawnChar(c, 0);
+		DrLib::Dr2::Funcs::Character::SpawnChar(c, pos);
 		return;
 	}
 }
@@ -108,6 +108,9 @@ void dr_mp::Client::Init()
 
 u_long iMode = 1;
 
+
+struct timeval tv;
+
 int dr_mp::Client::Connect(const char* addr, int port)
 {
 	std::cout << "Connecting to " << addr << ":" << port << " ...\n";
@@ -120,10 +123,18 @@ int dr_mp::Client::Connect(const char* addr, int port)
     sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock < 0) {
         std::cerr << "Socket creation error" << std::endl;
-        return -1;
+        return 1;
     }
 
-	ioctlsocket(sock, FIONBIO, &iMode);
+	// https://stackoverflow.com/questions/46811842/timeout-issue-for-connecting-via-blocking-nonblocking-tcp-sockets-in-c-c
+
+	int rc = ioctlsocket(sock, FIONBIO, &iMode);
+	if (rc == SOCKET_ERROR)
+	{
+		std::cerr << "Error init sock" << std::endl;
+		closesocket(sock);
+		return 1;
+	}
 
     serv_addr.sin_family = AF_INET;
    // if (inet_pton(serv_addr.sin_family, addr, &serv_addr.sin_addr)) {
@@ -131,7 +142,7 @@ int dr_mp::Client::Connect(const char* addr, int port)
 
 	if (result == INADDR_NONE) {
 		std::cerr << "Invalid address/ Address not supported" << std::endl;
-		return -1;
+		return 1;
 	}
 	serv_addr.sin_addr.s_addr = result;
 
@@ -139,19 +150,48 @@ int dr_mp::Client::Connect(const char* addr, int port)
     serv_addr.sin_port = htons(port);
 
     // Connect to server
-    if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == 1) {
-        std::cerr << "Connection Failed" << std::endl;
-        return -1;
+
+	rc = connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+
+    if (rc == 1 || (rc == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)) {
+
+		tv.tv_sec = 10;
+		tv.tv_usec = 0;
+
+		fd_set write, except;
+
+		FD_ZERO(&write);
+		FD_SET(sock, &write);
+
+		FD_ZERO(&except);
+		FD_SET(sock, &except);
+
+		rc = select(NULL, NULL, &write, &except, &tv);
+		if (rc == 0)
+		{
+			WSASetLastError(WSAETIMEDOUT);
+			rc = SOCKET_ERROR;
+		}
+		else if (rc > 0)
+		{
+			if (FD_ISSET(sock, &except))
+			{
+				int err = 0;
+				int errsize = sizeof(err);
+				getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&err, &errsize);
+				WSASetLastError(err);
+				rc = SOCKET_ERROR;
+			}
+			else
+				rc = 0;
+		}
     }
-	
-	Sleep(250);
-	
-	int error_code;
-	int error_code_size = sizeof(error_code);
-	if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&error_code, &error_code_size) != 0)
+
+	if (rc == SOCKET_ERROR)
 	{
+		closesocket(sock);
 		std::cerr << "Connection Failed" << std::endl;
-		return -1;
+		return 1;
 	}
 
 	std::cout << "Connection established to " << addr << ":" << port << " ...\n";
@@ -246,6 +286,10 @@ void dr_mp::Client::ReceiveMessage()
 			std::cout << "received player disconnect packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ")\n";
 			if (packet->pl_id == client_id)
 				Disconnect();
+			else
+				if (Players[packet->pl_id].Map == getMap())
+					despawnChar(Players[packet->pl_id].CharID);
+
 			break;
 		}
 		case P_CamType:
@@ -263,12 +307,17 @@ void dr_mp::Client::ReceiveMessage()
 
 			Players[packet->pl_id].Map = packet->pl_map;
 
+			auto pl = Players[packet->pl_id];
+
 			if (oldmap != -1 && oldmap != 0 && oldmap == getMap())
-				despawnChar(Players[packet->pl_id].CharID);
-			if (packet->pl_map != -1 && packet->pl_map != 0 && packet->pl_map == getMap() && getMovementMode() == MovementMode::Walk)
+				despawnChar(pl.CharID);
+
+			if (packet->pl_map > 0 && packet->pl_map == getMap() )
 			{
-				createChar(Players[packet->pl_id].CharID, Players[packet->pl_id].ExpID);
-				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
+				createChar(pl.CharID, pl.ExpID, pl.CharID /*0 -- MAP POS*/);
+
+				if (pl.CamType == MovementMode::Walk)
+					setCharPos(pl.CharID, pl.Pos);
 			}
 
 			std::cout << "received player map packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ") with map " << packet->pl_map << "!\n";
@@ -324,6 +373,12 @@ void dr_mp::Client::ReceiveMessage()
 				createChar(Players[packet->pl_id].CharID, Players[packet->pl_id].ExpID);
 				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
 			}
+			break;
+		}
+
+		case P_Ping:
+		{
+			SendPacket(PacketPing());
 			break;
 		}
 	}

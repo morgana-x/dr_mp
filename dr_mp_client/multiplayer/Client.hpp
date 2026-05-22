@@ -110,5 +110,14 @@ namespace dr_mp
 	private:
 		void TickSend();
 		void TickLerp();
+
+		int FindFreeRoomPos(int room)
+		{
+			int id = 0;
+			for (int i = 0; i < MAX_PLAYERS; i++)
+				if (Players[i].Map == room)
+					id++;
+			return id;
+		}
 	};
 }

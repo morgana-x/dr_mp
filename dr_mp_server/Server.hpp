@@ -23,6 +23,12 @@ class Server
 
 		template<typename T>
 		int SendSocket(SOCKET socket, T packet) {
+
+			if (socket == -1) {
+				std::cout << "Tried to send packet to closed socket!\n";
+				return 1;
+			}
+
 			int length = sizeof(packet);
 			int numbytes = 0;
 			int attempts = 0;
@@ -53,7 +59,7 @@ class Server
 		void SendPacket(int id, T packet) {
 			if (Players[id].Active)
 				if (SendSocket(Players[id].Socket, packet))
-					Players[id].CloseConnection();
+					PlayerDisconnect(id);
 		};
 
 		template<typename T>
@@ -88,7 +94,6 @@ class Server
 
 		void PlayerDisconnect(int id)
 		{
-			SendPacket(id, PacketDisconnect(id));
 			Players[id].CloseConnection();
 			BroadcastPacket(PacketDisconnect(id));
 

@@ -31,7 +31,9 @@
     <ClCompile Include="multiplayer\Menu.cpp">
       <Filter>Multiplayer</Filter>
     </ClCompile>
-    <ClCompile Include="Draw.cpp" />
+    <ClCompile Include="Draw.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.hpp" />
@@ -94,7 +96,9 @@
     <ClInclude Include="multiplayer\Menu.hpp">
       <Filter>Multiplayer</Filter>
     </ClInclude>
-    <ClInclude Include="Draw.hpp" />
+    <ClInclude Include="Draw.hpp">
+      <Filter>Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="drlib">
@@ -108,6 +112,9 @@
     </Filter>
     <Filter Include="Multiplayer">
       <UniqueIdentifier>{da74b31e-71db-4263-b538-13996fed1fbf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render">
+      <UniqueIdentifier>{a205c9a5-56c9-45b6-bb31-60d6d404dbe9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
