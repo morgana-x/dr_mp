@@ -17,6 +17,7 @@ char menu_chat_msg[128];
 void menu_playerlist()
 {
 
+	ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Server");
 	if (!Core::Client.connected)
 	{
@@ -45,6 +46,8 @@ void menu_playerlist()
 	ImGui::End();
 
 	std::stringstream st;
+	ImGui::SetNextWindowPos(ImVec2(0, 400), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Players");
 
 	for (int i = 0; i < dr_mp::MAX_PLAYERS; i++)
@@ -72,6 +75,8 @@ void menu_playerlist()
 
 	ImGui::End();
 
+	ImGui::SetNextWindowPos(ImVec2(500, 0), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Chat");
 	ImGui::BeginListBox("##Chat_History");
 	for (int i = Core::Client.chat.Length() - 1; i >= 0; i--)

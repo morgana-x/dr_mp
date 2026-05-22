@@ -111,11 +111,11 @@ namespace dr_mp
 		void TickSend();
 		void TickLerp();
 
-		int FindFreeRoomPos(int room)
+		int FindFreeRoomPos(int room, int pl=-1)
 		{
-			int id = 0;
+			int id = 1;
 			for (int i = 0; i < MAX_PLAYERS; i++)
-				if (Players[i].Map == room)
+				if (Players[i].Map == room && i != client_id && i != pl)
 					id++;
 			return id;
 		}

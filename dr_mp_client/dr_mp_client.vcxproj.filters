@@ -39,24 +39,6 @@
     <ClInclude Include="Core.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="drlib\Dr1Values.h">
-      <Filter>drlib</Filter>
-    </ClInclude>
-    <ClInclude Include="drlib\Dr2.h">
-      <Filter>drlib</Filter>
-    </ClInclude>
-    <ClInclude Include="drlib\Dr2Funcs.h">
-      <Filter>drlib</Filter>
-    </ClInclude>
-    <ClInclude Include="drlib\Dr2Values.h">
-      <Filter>drlib</Filter>
-    </ClInclude>
-    <ClInclude Include="drlib\Dr1.h">
-      <Filter>drlib</Filter>
-    </ClInclude>
-    <ClInclude Include="drlib\Dr1Funcs.h">
-      <Filter>drlib</Filter>
-    </ClInclude>
     <ClInclude Include="ext\imgui\imgui_internal.h">
       <Filter>imgui</Filter>
     </ClInclude>
@@ -74,9 +56,6 @@
     </ClInclude>
     <ClInclude Include="ext\minhook\include\MinHook.h">
       <Filter>minhook</Filter>
-    </ClInclude>
-    <ClInclude Include="drlib\DrTypes.h">
-      <Filter>drlib</Filter>
     </ClInclude>
     <ClInclude Include="ext\imgui\imconfig.h">
       <Filter>imgui</Filter>
@@ -99,6 +78,27 @@
     <ClInclude Include="Draw.hpp">
       <Filter>Render</Filter>
     </ClInclude>
+    <ClInclude Include="ext\drlib\Dr1.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\drlib\Dr1Funcs.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\drlib\Dr1Values.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\drlib\Dr2.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\drlib\Dr2Funcs.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\drlib\Dr2Values.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="ext\drlib\DrTypes.h">
+      <Filter>drlib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="drlib">
@@ -115,6 +115,9 @@
     </Filter>
     <Filter Include="Render">
       <UniqueIdentifier>{a205c9a5-56c9-45b6-bb31-60d6d404dbe9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Gui">
+      <UniqueIdentifier>{0acddb03-dbea-4289-a942-5f109ffc969e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

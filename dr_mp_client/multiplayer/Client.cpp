@@ -13,22 +13,21 @@ int mpOldMap = -1;
 int mpOldCamType = -1;
 Vec3 mpOldPos = Vec3(0, 0, 0);
 
-void createChar(char c, short exp=0, int pos = 0)
+void spawnCharPos(char c, int pos);
+
+void createChar(char c, short exp=0)
 {
 	if (Core::Game == Core::DR1)
 	{
 		DrLib::Dr1::Funcs::Character::CreateChar(c);
 		DrLib::Dr1::Funcs::Character::LoadStand(c, exp);
-		DrLib::Dr1::Funcs::Character::SpawnChar(c, pos);
-		return;
 	}
-	if (Core::Game == Core::DR2)
+	else if (Core::Game == Core::DR2)
 	{
 		DrLib::Dr2::Funcs::Character::CreateChar(c);
 		DrLib::Dr2::Funcs::Character::LoadStand(c, exp);
-		DrLib::Dr2::Funcs::Character::SpawnChar(c, pos);
-		return;
 	}
+	spawnCharPos(c, 0);
 }
 
 void despawnChar(char c)
@@ -55,6 +54,20 @@ void setCharPos(char c, float pos[3])
 	if (Core::Game == Core::DR2)
 	{
 		//DrLib::Dr2::Funcs::Character::SetPos(c, pos[0], pos[1], pos[2]);
+		return;
+	}
+}
+
+void spawnCharPos(char c, int pos)
+{
+	if (Core::Game == Core::DR1)
+	{
+		DrLib::Dr1::Funcs::Character::SpawnChar(c, pos);
+		return;
+	}
+	if (Core::Game == Core::DR2)
+	{
+		DrLib::Dr2::Funcs::Character::SpawnChar(c, pos);
 		return;
 	}
 }
@@ -295,7 +308,20 @@ void dr_mp::Client::ReceiveMessage()
 		case P_CamType:
 		{
 			auto packet = (PacketCamType*)(packetBuffer);
+			int oldcam = Players[packet->pl_id].CamType;
 			Players[packet->pl_id].CamType = packet->pl_cam;
+
+			auto pl = Players[packet->pl_id];
+			if (oldcam != packet->pl_cam && pl.Map > 0 && pl.Map == getMap())
+			{
+				createChar(pl.CharID, pl.ExpID);
+
+				if (pl.CamType == MovementMode::Walk)
+					setCharPos(pl.CharID, pl.Pos);
+				else
+					spawnCharPos(pl.CharID, FindFreeRoomPos(pl.Map, pl.ID));
+			}
+
 			break;
 		}
 		case P_Map:
@@ -312,12 +338,14 @@ void dr_mp::Client::ReceiveMessage()
 			if (oldmap != -1 && oldmap != 0 && oldmap == getMap())
 				despawnChar(pl.CharID);
 
-			if (packet->pl_map > 0 && packet->pl_map == getMap())
+			if (Players[packet->pl_id].Map > 0 && Players[packet->pl_id].Map == getMap())
 			{
-				createChar(pl.CharID, pl.ExpID, FindFreeRoomPos(packet->pl_map));
+				createChar(pl.CharID, pl.ExpID);
 
 				if (pl.CamType == MovementMode::Walk)
 					setCharPos(pl.CharID, pl.Pos);
+				else
+					spawnCharPos(pl.CharID, FindFreeRoomPos(packet->pl_map, packet->pl_id));
 			}
 
 			std::cout << "received player map packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ") with map " << packet->pl_map << "!\n";
@@ -333,11 +361,21 @@ void dr_mp::Client::ReceiveMessage()
 			for (int i = 0; i < 3; i++)
 				Players[packet->pl_id].Pos[i] = packet->pl_pos[i];
 
-			if (Players[packet->pl_id].CamType == MovementMode::Room)
+			int map = getMap();
+
+			if (Players[packet->pl_id].Map != map)
 				break;
 
+			if (Players[packet->pl_id].CamType != MovementMode::Walk)
+			{
+			
+				if (map == Players[packet->pl_id].Map)
+					spawnCharPos(Players[packet->pl_id].CharID, FindFreeRoomPos(getMap(), packet->pl_id));
+				break;
+			}
 
-			if (Players[packet->pl_id].Map == getMap() && getMovementMode() == MovementMode::Walk && (Distance(Players[packet->pl_id].Pos, Players[packet->pl_id].OldPos) < 250.0))
+
+			if ( (Distance(Players[packet->pl_id].Pos, Players[packet->pl_id].OldPos) < 250.0))
 			{
 				Players[packet->pl_id].Lerp = true;
 				Players[packet->pl_id].LerpStart = std::chrono::steady_clock::now();
