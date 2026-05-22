@@ -303,7 +303,7 @@ void dr_mp::Client::ReceiveMessage()
 			auto packet = (PacketMap*)(packetBuffer);
 			int oldmap = Players[packet->pl_id].Map;
 
-		
+
 
 			Players[packet->pl_id].Map = packet->pl_map;
 
@@ -312,9 +312,9 @@ void dr_mp::Client::ReceiveMessage()
 			if (oldmap != -1 && oldmap != 0 && oldmap == getMap())
 				despawnChar(pl.CharID);
 
-			if (packet->pl_map > 0 && packet->pl_map == getMap() )
+			if (packet->pl_map > 0 && packet->pl_map == getMap())
 			{
-				createChar(pl.CharID, pl.ExpID, pl.CharID /*0 -- MAP POS*/);
+				createChar(pl.CharID, pl.ExpID, FindFreeRoomPos(packet->pl_map));
 
 				if (pl.CamType == MovementMode::Walk)
 					setCharPos(pl.CharID, pl.Pos);
@@ -332,6 +332,10 @@ void dr_mp::Client::ReceiveMessage()
 
 			for (int i = 0; i < 3; i++)
 				Players[packet->pl_id].Pos[i] = packet->pl_pos[i];
+
+			if (Players[packet->pl_id].CamType == MovementMode::Room)
+				break;
+
 
 			if (Players[packet->pl_id].Map == getMap() && getMovementMode() == MovementMode::Walk && (Distance(Players[packet->pl_id].Pos, Players[packet->pl_id].OldPos) < 250.0))
 			{
@@ -382,7 +386,6 @@ void dr_mp::Client::ReceiveMessage()
 			break;
 		}
 	}
-
 }
 
 
@@ -431,7 +434,7 @@ void dr_mp::Client::TickSend()
 
 	Vec3* newPos = getPos();
 	auto now = std::chrono::steady_clock::now();
-	if ( (now > nextPosUpdate) && (newMap > 0) && (mapChanged || newPos->x != mpOldPos.x || newPos->y != mpOldPos.y || newPos->z != mpOldPos.z))
+	if ( (newMovement == MovementMode::Walk) && (now > nextPosUpdate) && (newMap > 0) && (mapChanged || newPos->x != mpOldPos.x || newPos->y != mpOldPos.y || newPos->z != mpOldPos.z))
 	{
 		nextPosUpdate = now + nextPosPeriod;
 		mpOldPos.x = newPos->x;
