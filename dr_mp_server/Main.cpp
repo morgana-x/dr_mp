@@ -54,8 +54,6 @@ int main(int argc, char** argv)
 
     server.Start(port);
 
-    std::cout << "Starting server tick thread..." << "\n";
-
     thread_s = std::thread(tick_server);
 
     char line[64];

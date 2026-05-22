@@ -346,7 +346,6 @@ void dr_mp::Client::ReceiveMessage()
 			{
 				Players[packet->pl_id].Lerp = false;
 				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
-				std::cout << "big dist, setting pos";
 			}
 			break;
 		}
@@ -414,12 +413,11 @@ void dr_mp::Client::TickSend()
 
 	int newMap = getMap();
 	bool mapChanged = newMap != mpOldMap;
-	//	std::cout << "Map " << newMap << "\n";
+
 	if (mapChanged)
 	{
 		mpOldMap = newMap;
 		SendPacket(PacketMap(client_id, newMap));
-		std::cout << "Sending map " << newMap << "\n";
 
 		for (int i = 0; i < MAX_PLAYERS; i++)
 		{
