@@ -4,19 +4,11 @@
 #include "Windows.h"
 #include "ext/minhook/include/MinHook.h"
 
-HANDLE hCoreTickThread;
+HANDLE hTickThread;
+HANDLE hDrawThread;
 
 namespace Core
 {
-    void AllocateConsole()
-    {
-        AllocConsole();
-        FILE* fDummy;
-        freopen_s(&fDummy, "CONIN$", "r", stdin);
-        freopen_s(&fDummy, "CONOUT$", "w", stderr);
-        freopen_s(&fDummy, "CONOUT$", "w", stdout);
-    }
-
     char actualpath[2048];
     void DetectGame()
     {
@@ -34,23 +26,26 @@ namespace Core
     }
 
 
-	void Init()
+	void Init(HMODULE hModule)
 	{
-        AllocateConsole();
-        printf("Allocated console\n");
         DetectGame();
+
         MH_Initialize();
 
         Client = dr_mp::Client();
 
-        hCoreTickThread = CreateThread(nullptr, NULL, (LPTHREAD_START_ROUTINE)Core::Tick, nullptr, NULL, nullptr);
-        Draw::Init();
+        Draw::hCurrentModule = hModule;
+
+        hTickThread = CreateThread(nullptr, NULL, (LPTHREAD_START_ROUTINE)Core::Tick, nullptr, NULL, nullptr);
+        hDrawThread = CreateThread(nullptr, NULL, (LPTHREAD_START_ROUTINE)Draw::Init, nullptr, NULL, nullptr);
 	}
 
     void Uninit()
     {
         MH_Uninitialize();
-        TerminateThread(hCoreTickThread, 0);
+
+        TerminateThread(hTickThread, 0);
+        TerminateThread(hDrawThread, 0);
     }
 
     void Tick()
@@ -58,7 +53,7 @@ namespace Core
         while (true)
         {
             Client.Tick();
-            Sleep(1);
+            Sleep(5);
         }
     }
 }

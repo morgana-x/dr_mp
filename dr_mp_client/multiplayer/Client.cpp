@@ -4,8 +4,8 @@
 #include <iostream>
 #include <chrono>
 #include "../Core.hpp"
-#include "../drlib/Dr1.h"
-#include "../drlib/Dr2.h"
+#include "../ext/drlib/Dr1.h"
+#include "../ext/drlib/Dr2.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -288,8 +288,6 @@ void dr_mp::Client::ReceiveMessage()
 			Players[packet->pl_id].SetName(packet->pl_name);
 			Players[packet->pl_id].Active = true;
 			Players[packet->pl_id].Map = -1;
-			std::cout << "received player info packet of " << packet->pl_name << "(" << packet->pl_id << ")\n";
-
 			break;
 		}
 		case P_Disconnect:
@@ -347,8 +345,6 @@ void dr_mp::Client::ReceiveMessage()
 				else
 					spawnCharPos(pl.CharID, FindFreeRoomPos(packet->pl_map, packet->pl_id));
 			}
-
-			std::cout << "received player map packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ") with map " << packet->pl_map << "!\n";
 			break;
 		}
 		case P_Pos:

@@ -3,7 +3,15 @@
 #include "Core.hpp"
 #include "Draw.hpp"
 #include "stdio.h"
-HANDLE hCurrentUIThread = nullptr;
+
+void AllocateConsole()
+{
+    AllocConsole();
+    FILE* fDummy;
+    freopen_s(&fDummy, "CONIN$", "r", stdin);
+    freopen_s(&fDummy, "CONOUT$", "w", stderr);
+    freopen_s(&fDummy, "CONOUT$", "w", stdout);
+}
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
@@ -13,13 +21,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        DisableThreadLibraryCalls(hModule);
-        Draw::hCurrentModule = hModule;
 
-        hCurrentUIThread = CreateThread(nullptr, NULL, (LPTHREAD_START_ROUTINE)Core::Init, nullptr, NULL, nullptr);
+        AllocateConsole();
+
+        DisableThreadLibraryCalls(hModule);
+
+        Core::Init(hModule);
         break;
     case DLL_PROCESS_DETACH:
-        TerminateThread(hCurrentUIThread, 0);
         Core::Uninit();
         break;
     }

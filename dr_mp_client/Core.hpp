@@ -10,7 +10,7 @@ namespace Core
 	};
 
 	inline DrGame Game;
-	inline extern void Init();
+	inline extern void Init(HMODULE hModule);
 	inline extern void Uninit();
 	inline extern void Tick();
 	inline dr_mp::Client Client;
