@@ -3,6 +3,7 @@
 #include <string>
 #include "Windows.h"
 #include "ext/minhook/include/MinHook.h"
+#include "multiplayer/Hud.hpp"
 
 HANDLE hTickThread;
 HANDLE hDrawThread;
@@ -34,6 +35,8 @@ namespace Core
 
         Client = dr_mp::Client();
 
+        dr_mp::HudInitialise();
+
         Draw::hCurrentModule = hModule;
 
         hTickThread = CreateThread(nullptr, NULL, (LPTHREAD_START_ROUTINE)Core::Tick, nullptr, NULL, nullptr);
@@ -42,6 +45,7 @@ namespace Core
 
     void Uninit()
     {
+        dr_mp::HudUninitialise();
         MH_Uninitialize();
 
         TerminateThread(hTickThread, 0);

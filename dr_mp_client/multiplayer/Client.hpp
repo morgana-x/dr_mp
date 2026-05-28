@@ -8,6 +8,7 @@
 namespace dr_mp
 {
 	const int MAX_PLAYERS = 17;
+
 	class Client
 	{
 		public:

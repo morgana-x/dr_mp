@@ -34,6 +34,9 @@
     <ClCompile Include="Draw.cpp">
       <Filter>Render</Filter>
     </ClCompile>
+    <ClCompile Include="multiplayer\Hud.cpp">
+      <Filter>Multiplayer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core.hpp" />
@@ -98,6 +101,9 @@
     </ClInclude>
     <ClInclude Include="ext\drlib\DrTypes.h">
       <Filter>drlib</Filter>
+    </ClInclude>
+    <ClInclude Include="multiplayer\Hud.hpp">
+      <Filter>Multiplayer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

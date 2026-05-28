@@ -285,16 +285,22 @@ void dr_mp::Client::ReceiveMessage()
 		case P_Connect:
 		{
 			auto packet = (PacketConnect*)(packetBuffer);
-			Players[packet->pl_id].SetName(packet->pl_name);
-			Players[packet->pl_id].Active = true;
-			Players[packet->pl_id].Map = -1;
+			auto& pl = Players[packet->pl_id];
+
+			pl.SetName(packet->pl_name);
+			pl.Active = true;
+			pl.Map = -1;
 			break;
 		}
 		case P_Disconnect:
 		{
 			auto packet = (PacketDisconnect*)(packetBuffer);
-			Players[packet->pl_id].Active = false;
-			std::cout << "received player disconnect packet of " << Players[packet->pl_id].Name << "(" << packet->pl_id << ")\n";
+			auto& pl = Players[packet->pl_id];
+
+			pl.Active = false;
+
+			std::cout << "received player disconnect packet of " << pl.Name << "(" << packet->pl_id << ")\n";
+
 			if (packet->pl_id == client_id)
 				Disconnect();
 			else
@@ -306,10 +312,12 @@ void dr_mp::Client::ReceiveMessage()
 		case P_CamType:
 		{
 			auto packet = (PacketCamType*)(packetBuffer);
-			int oldcam = Players[packet->pl_id].CamType;
-			Players[packet->pl_id].CamType = packet->pl_cam;
 
-			auto pl = Players[packet->pl_id];
+			auto& pl = Players[packet->pl_id];
+
+			int oldcam = pl.CamType;
+			pl.CamType = packet->pl_cam;
+
 			if (oldcam != packet->pl_cam && pl.Map > 0 && pl.Map == getMap())
 			{
 				createChar(pl.CharID, pl.ExpID);
@@ -327,11 +335,10 @@ void dr_mp::Client::ReceiveMessage()
 			auto packet = (PacketMap*)(packetBuffer);
 			int oldmap = Players[packet->pl_id].Map;
 
+			auto& pl = Players[packet->pl_id];
 
+			pl.Map = packet->pl_map;
 
-			Players[packet->pl_id].Map = packet->pl_map;
-
-			auto pl = Players[packet->pl_id];
 
 			if (oldmap != -1 && oldmap != 0 && oldmap == getMap())
 				despawnChar(pl.CharID);
@@ -351,35 +358,41 @@ void dr_mp::Client::ReceiveMessage()
 		{
 			auto packet = (PacketPos*)(packetBuffer);
 
+			auto& p = Players[packet->pl_id];
+
 			// Set old pos to current character position
-			copyCharaPos(Players[packet->pl_id].CharID, Players[packet->pl_id].OldPos);
+			copyCharaPos(p.CharID, p.OldPos);
 
 			for (int i = 0; i < 3; i++)
-				Players[packet->pl_id].Pos[i] = packet->pl_pos[i];
+				p.Pos[i] = packet->pl_pos[i];
 
 			int map = getMap();
 
-			if (Players[packet->pl_id].Map != map)
+
+			if (p.Map != map)
 				break;
 
-			if (Players[packet->pl_id].CamType != MovementMode::Walk)
+			if (p.CamType != MovementMode::Walk)
 			{
 			
-				if (map == Players[packet->pl_id].Map)
-					spawnCharPos(Players[packet->pl_id].CharID, FindFreeRoomPos(getMap(), packet->pl_id));
+				if (map == p.Map)
+					spawnCharPos(p.CharID, FindFreeRoomPos(getMap(), packet->pl_id));
 				break;
 			}
 
 
-			if ( (Distance(Players[packet->pl_id].Pos, Players[packet->pl_id].OldPos) < 250.0))
+			if ( (Distance(p.Pos, p.OldPos) < 400.0))
 			{
-				Players[packet->pl_id].Lerp = true;
-				Players[packet->pl_id].LerpStart = std::chrono::steady_clock::now();
+				p.Frames.push_back(Frame(std::chrono::steady_clock::time_point::clock::now(), p.Pos));
+				if (p.Frames.size() > 10)
+					p.Frames.pop_front();
 			}
 			else
 			{
-				Players[packet->pl_id].Lerp = false;
-				setCharPos(Players[packet->pl_id].CharID, Players[packet->pl_id].Pos);
+				while (p.Frames.size() > 0)
+					p.Frames.pop_front();
+
+				setCharPos(p.CharID, p.Pos);
 			}
 			break;
 		}
@@ -429,9 +442,7 @@ bool needRequestChara = false;
 char chatBuffer[128];
 bool needSendChat;
 
-const int update_milliseconds = 100;
-
-const float lerp_smooth = (float)(update_milliseconds)/1000.0f;
+const int update_milliseconds = 50;
 
 std::chrono::time_point nextPosUpdate = std::chrono::steady_clock::now();
 std::chrono::milliseconds nextPosPeriod = std::chrono::milliseconds(update_milliseconds);
@@ -495,29 +506,44 @@ void dr_mp::Client::TickLerp()
 	if (getMovementMode() != MovementMode::Walk)
 		return;
 
-	auto now = std::chrono::steady_clock::now();
+	auto now = std::chrono::steady_clock::now() - std::chrono::milliseconds(150);
 
 	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
-		if (!Players[i].Active || !Players[i].Lerp)
+		auto& p = Players[i];
+
+		if (!p.Active || p.Frames.size() < 2)
 			continue;
 
-		if (Players[i].Map != getMap())
+		if (p.Map != getMap())
 			continue;
 
-		auto elapsed = std::chrono::duration<float>(now - Players[i].LerpStart).count();
-		
-		float t = std::clamp(elapsed / lerp_smooth, 0.0f, 1.0f);
+		Frame* frameA = nullptr;
+		Frame* frameB = nullptr;
 
-		if (t >= 0.99f)
+		for (int f = 0; f < p.Frames.size() - 1; f++)
 		{
-			Players[i].Lerp = false;
-			setCharPos(Players[i].CharID, Players[i].Pos);
-			continue;
+			if (p.Frames[f].Time > now || p.Frames[f + 1].Time < now)
+				continue;
+
+			frameA = &p.Frames[f];
+			frameB = &p.Frames[f + 1];
+			break;
 		}
 
+		if (!frameA || !frameB)
+			continue;
+
+		float total = std::chrono::duration<float>(frameB->Time - frameA->Time).count();
+		if (total <= 0.0f)
+			continue;
+
+		float elapsed = std::chrono::duration<float>(now - frameA->Time).count();
+
+		float t = std::clamp(elapsed / total, 0.0f, 1.0f);
+
 		for (int x = 0; x < 3; x++)
-			newLerpPos[x] = Players[i].OldPos[x] + (t *(Players[i].Pos[x] - Players[i].OldPos[x]));
+			newLerpPos[x] = frameA->Pos[x] + (t * (frameB->Pos[x] - frameA->Pos[x]));
 
 		setCharPos(Players[i].CharID, newLerpPos);
 	}

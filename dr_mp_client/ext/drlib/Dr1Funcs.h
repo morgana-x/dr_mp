@@ -121,11 +121,17 @@ namespace DrLib
 
 			namespace HUD
 			{
+				typedef void RenderFunc(); // Called by rendering loop
+				inline RenderFunc* Render = (RenderFunc*)(baseAddr + 0x578a0);
+
 				typedef void RenderHudFunc(); // Called by rendering loop
 				inline RenderHudFunc* RenderHud = (RenderHudFunc*)(baseAddr + 0x411e0);
 
 				typedef void HideChapterFunc();
 				inline HideChapterFunc* HideChapterAnim = (HideChapterFunc*)(baseAddr + 0x41d90);
+
+				typedef void RenderChapterFunc();
+				inline RenderChapterFunc* RenderChapter = (RenderChapterFunc*)(baseAddr + 0x43650);
 
 				// Time Of Day, chapter, 0
 				typedef void ShowChapterFunc(unsigned int, char, char);
@@ -136,6 +142,22 @@ namespace DrLib
 
 				typedef void SetRadioVisibleFunc(char);
 				inline SetRadioVisibleFunc* SetRadioVisible = (SetRadioVisibleFunc*)(baseAddr + 0x63980);
+
+				typedef int RenderRectFunc(float x, float y, float width, float height, float p5, char r1, char g1, char b1, int a1, char r2, char g2, char b2, int a2, char r3, char g3, char b3, int a3, char r4, char g4, char b4, int a4, short u1, char u2, char u3, int u4);
+				inline RenderRectFunc* RenderRect = (RenderRectFunc*)(baseAddr + 0xdcb90);
+
+				typedef int RenderTextFunc(int layer, int posX, int posY, short character, int colorIndex);
+				inline RenderTextFunc* RenderText = (RenderTextFunc*)(baseAddr + 0xf38e0);
+
+				inline void PrintString(int layer, int x, int y, const char* str, int color)
+				{
+					int currentX = x;
+					for (int i = 0; i < strlen(str); i++)
+					{
+						int width = RenderText(layer, currentX, y, (short)str[i], color);
+						currentX += width;
+					}
+				}
 			}
 		}
 	}

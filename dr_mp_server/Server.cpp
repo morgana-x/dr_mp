@@ -70,7 +70,7 @@ void Server::Tick()
 }
 
 std::chrono::time_point nextPosUpdate = std::chrono::steady_clock::now();
-std::chrono::milliseconds nextPosPeriod = std::chrono::milliseconds(100);
+std::chrono::milliseconds nextPosPeriod = std::chrono::milliseconds(50);
 
 std::chrono::time_point nextPingUpdate = std::chrono::steady_clock::now();
 std::chrono::milliseconds nextPingPeriod = std::chrono::milliseconds(1000);
