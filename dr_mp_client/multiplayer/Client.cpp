@@ -380,20 +380,13 @@ void dr_mp::Client::ReceiveMessage()
 				break;
 			}
 
+			p.Frames.push_back(Frame(std::chrono::steady_clock::time_point::clock::now(), p.Pos));
+			if (p.Frames.size() > 10)
+				p.Frames.pop_front();
 
-			if ( (Distance(p.Pos, p.OldPos) < 400.0))
-			{
-				p.Frames.push_back(Frame(std::chrono::steady_clock::time_point::clock::now(), p.Pos));
-				if (p.Frames.size() > 10)
-					p.Frames.pop_front();
-			}
-			else
-			{
-				while (p.Frames.size() > 0)
-					p.Frames.pop_front();
-
+			if ( (Distance(p.Pos, p.OldPos) > 400.0))
 				setCharPos(p.CharID, p.Pos);
-			}
+
 			break;
 		}
 		case P_Message:
